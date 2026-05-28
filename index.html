@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Las Vegas Parents Club – Community Partnerships Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --rose:#c0394b;--rose-dark:#a02535;--teal:#5bbfb5;--cream:#fdf5e8;
+  --cream-border:#e8d8b8;--bg:#f2e8d8;--text:#2a0f00;--muted:#8a7060;
+  --white:#fff;--header-from:#7a1818;--header-to:#b06020;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* ── LOGIN ── */
+#loginScreen{
+  background:#3b0a0a;
+  background-image:radial-gradient(ellipse at top left,#6b1a1a 0%,transparent 55%),
+                   radial-gradient(ellipse at bottom right,#7a1010 0%,transparent 55%);
+  display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;
+}
+#loginScreen::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);
+  background-size:32px 32px;pointer-events:none;
+}
+.login-card{
+  background:var(--white);border-radius:24px;padding:44px 36px 36px;
+  width:100%;max-width:420px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.4);position:relative;z-index:1;
+}
+.login-card .cactus{font-size:48px;margin-bottom:12px;display:block}
+.login-card h1{font-family:'Playfair Display',serif;font-size:28px;color:#1a0a00;line-height:1.2;margin-bottom:6px}
+.login-card .sub{font-size:14px;color:var(--muted);letter-spacing:.02em;margin-bottom:32px}
+
+/* ── WHO ── */
+#whoScreen{
+  background:#3b0a0a;
+  background-image:radial-gradient(ellipse at top left,#6b1a1a 0%,transparent 55%),
+                   radial-gradient(ellipse at bottom right,#7a1010 0%,transparent 55%);
+  display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;
+}
+#whoScreen::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(#ffffff10 1px,transparent 1px),linear-gradient(90deg,#ffffff10 1px,transparent 1px);
+  background-size:32px 32px;pointer-events:none;
+}
+.who-card{
+  background:var(--white);border-radius:24px;padding:40px 28px 32px;
+  width:100%;max-width:420px;position:relative;z-index:1;
+  box-shadow:0 24px 64px rgba(0,0,0,.4);
+}
+.who-card h2{font-family:'Playfair Display',serif;font-size:26px;color:#1a0a00;margin-bottom:6px}
+.who-card .who-sub{font-size:14px;color:var(--muted);margin-bottom:24px}
+.user-card{
+  background:var(--cream);border:1.5px solid var(--cream-border);border-radius:16px;
+  padding:20px;margin-bottom:12px;cursor:pointer;
+  transition:transform .12s,border-color .15s,box-shadow .15s;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.user-card:hover{transform:translateY(-2px);border-color:var(--rose);box-shadow:0 6px 20px rgba(192,57,75,.15)}
+.avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff}
+.avatar.pink{background:var(--rose)} .avatar.teal{background:var(--teal)} .avatar.purple{background:#8b5cf6}
+.user-card .user-name{font-size:17px;font-weight:700;color:var(--text)}
+.user-card .user-role{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+
+/* ── APP ── */
+#appScreen{display:flex;flex-direction:column;min-height:100vh}
+.app-header{background:linear-gradient(135deg,var(--header-from),var(--header-to));padding:16px 20px 0}
+.header-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.header-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+.header-info{flex:1}
+.header-name{font-size:15px;font-weight:700;color:#fff}
+.header-role{font-size:11px;font-weight:600;letter-spacing:.1em;color:rgba(255,255,255,.7);text-transform:uppercase}
+.header-btns{display:flex;gap:8px}
+.btn-outline-white{padding:7px 14px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.4);border-radius:50px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn-outline-white:hover{background:rgba(255,255,255,.25)}
+.tabs{display:flex;gap:0;border-bottom:2px solid rgba(255,255,255,.15)}
+.tab{padding:10px 16px 12px;font-size:14px;font-weight:600;color:rgba(255,255,255,.6);cursor:pointer;position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:color .15s}
+.tab.active{color:#fff}
+.tab.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:#fff;border-radius:2px 2px 0 0}
+.tab-badge{background:var(--rose);color:#fff;font-size:11px;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center}
+.tab-content{display:none;padding:24px 20px;flex:1}
+.tab-content.active{display:block}
+.tab-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:800;color:var(--text);margin-bottom:20px}
+
+/* ── FORM ── */
+.form-card{background:var(--white);border-radius:20px;padding:24px 20px;margin-bottom:16px}
+.form-section{margin-bottom:24px}
+.form-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text);margin-bottom:10px;display:block}
+.form-label span{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:12px}
+.field{margin-bottom:0}
+.field input,.field select,.field textarea{
+  width:100%;padding:13px 16px;background:var(--cream);
+  border:1.5px solid var(--cream-border);border-radius:12px;
+  font-size:15px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.field input::placeholder,.field textarea::placeholder{color:#b8a090}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(192,57,75,.12)}
+.field textarea{resize:vertical;min-height:100px;line-height:1.5}
+.type-options{display:flex;flex-direction:column;gap:10px}
+.type-option{border:1.5px solid var(--cream-border);border-radius:14px;padding:16px 20px;cursor:pointer;transition:border-color .15s,background .15s;background:var(--cream);text-align:center}
+.type-option.selected{border-color:var(--teal);background:#fff;box-shadow:0 0 0 1px var(--teal)}
+.type-option .type-name{font-size:16px;font-weight:700;color:var(--text)}
+.type-option.selected .type-name{color:var(--teal)}
+.type-option .type-desc{font-size:13px;color:var(--muted);margin-top:3px}
+.pill-grid{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--cream);border:1.5px solid var(--cream-border);border-radius:50px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text);transition:border-color .15s,background .15s;user-select:none}
+.pill input[type=checkbox]{width:16px;height:16px;accent-color:var(--rose);cursor:pointer;flex-shrink:0;background:transparent;border:none;padding:0}
+.pill:has(input:checked){border-color:var(--rose);background:#fff5f5}
+.radio-group{display:flex;flex-wrap:wrap;gap:8px}
+.radio-pill{padding:10px 18px;background:var(--cream);border:1.5px solid var(--cream-border);border-radius:50px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text);transition:border-color .15s,background .15s,color .15s;user-select:none}
+.radio-pill.selected{background:var(--rose);border-color:var(--rose);color:#fff}
+.amount-wrap{position:relative}
+.amount-wrap .dollar{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:600;color:var(--muted);pointer-events:none}
+.amount-wrap input{padding-left:28px}
+.helper-text{font-size:12px;color:var(--muted);margin-top:6px}
+.form-bottom{display:flex;align-items:center;gap:16px;margin-top:8px}
+.btn-rose{width:100%;padding:16px;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#fff;border:none;border-radius:50px;font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.btn-rose:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(192,57,75,.4)}
+.btn-rose-sm{padding:14px 28px;background:linear-gradient(135deg,var(--rose),var(--rose-dark));color:#fff;border:none;border-radius:50px;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.btn-rose-sm:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(192,57,75,.35)}
+.btn-rose-sm:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-clear{background:none;border:none;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;padding:10px}
+.btn-clear:hover{color:var(--text)}
+.error-msg{font-size:13px;color:var(--rose);margin-top:-8px;margin-bottom:12px;display:none;text-align:left}
+.login-note{font-size:13px;color:#9a8070;margin-top:20px;line-height:1.5}
+.footer-note{font-size:12px;color:var(--muted);text-align:center;padding:16px 20px 28px}
+
+/* ── PITCHES ── */
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:15px;line-height:1.6}
+.pitch-card{background:var(--white);border-radius:16px;padding:18px;margin-bottom:12px;border:1.5px solid var(--cream-border)}
+.pitch-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pitch-title{font-size:16px;font-weight:700;color:var(--text);line-height:1.3}
+.pitch-type{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:50px;white-space:nowrap;flex-shrink:0}
+.pitch-type.editorial{background:#e0f5f3;color:#2a8a80}
+.pitch-type.partnership{background:#fde8ec;color:var(--rose-dark)}
+.pitch-meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;margin-bottom:4px}
+.pitch-desc{font-size:14px;color:#5a3a2a;line-height:1.5;margin-top:8px}
+.pitch-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--cream-border)}
+.pitch-by{font-size:12px;color:var(--muted)}
+.grab-btn{padding:8px 16px;background:var(--teal);color:#fff;border:none;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.grab-btn:hover{opacity:.85}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.live-badge{display:flex;align-items:center;font-size:12px;color:#4ade80;font-weight:600;padding:8px 16px}
+
+/* ── SETUP BANNER ── */
+.setup-banner{background:#fff3cd;border:1.5px solid #ffc107;border-radius:12px;padding:16px;margin-bottom:20px;font-size:13px;line-height:1.6;color:#664d03}
+.setup-banner strong{display:block;margin-bottom:4px;font-size:14px}
+.setup-banner code{background:#fff;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px}
+
+/* ── LOADING ── */
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--cream-border);border-top-color:var(--rose);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-row{text-align:center;padding:32px;color:var(--muted);font-size:14px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(100px);background:#2a0f00;color:#fff;padding:14px 24px;border-radius:50px;font-size:14px;font-weight:600;z-index:999;transition:transform .3s ease;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginScreen" class="screen active">
+  <div class="login-card">
+    <span class="cactus">🌵</span>
+    <h1>Las Vegas Parents Club</h1>
+    <p class="sub">Community Partnerships Hub</p>
+    <div style="margin-bottom:18px">
+      <label style="display:block;font-size:11px;font-weight:700;letter-spacing:.12em;color:#3b0a0a;margin-bottom:8px;text-transform:uppercase">Username</label>
+      <input id="loginUser" type="text" style="width:100%;padding:13px 16px;background:#fdf5e8;border:1.5px solid #e8d8b8;border-radius:12px;font-size:15px;font-family:'DM Sans',sans-serif;color:#2a0f00;outline:none" placeholder="Team username" autocomplete="username"/>
+    </div>
+    <div style="margin-bottom:18px">
+      <label style="display:block;font-size:11px;font-weight:700;letter-spacing:.12em;color:#3b0a0a;margin-bottom:8px;text-transform:uppercase">Password</label>
+      <input id="loginPass" type="password" style="width:100%;padding:13px 16px;background:#fdf5e8;border:1.5px solid #e8d8b8;border-radius:12px;font-size:15px;font-family:'DM Sans',sans-serif;color:#2a0f00;outline:none" placeholder="Team password" autocomplete="current-password"/>
+    </div>
+    <p class="error-msg" id="loginError">Incorrect username or password.</p>
+    <button class="btn-rose" onclick="doLogin()">Enter the Hub →</button>
+    <p class="login-note">One shared login for the whole team.<br/>You'll pick your name after signing in.</p>
+  </div>
+</div>
+
+<!-- ═══ WHO ═══ -->
+<div id="whoScreen" class="screen">
+  <div class="who-card">
+    <h2>Who are you?</h2>
+    <p class="who-sub">Pick your name to enter your personal view.</p>
+    <div id="userList"></div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="appScreen" class="screen">
+  <div class="app-header">
+    <div class="header-top">
+      <div class="header-avatar" id="headerAvatar"></div>
+      <div class="header-info">
+        <div class="header-name" id="headerName"></div>
+        <div class="header-role" id="headerRole"></div>
+      </div>
+      <div class="header-btns">
+        <button class="btn-outline-white" onclick="switchUser()">Switch user</button>
+        <button class="btn-outline-white" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('pitch')">Pitch an idea</div>
+      <div class="tab" onclick="switchTab('mine')">My pitches</div>
+      <div class="tab" onclick="switchTab('grabs')">Up for grabs <span class="tab-badge" id="grabCount">…</span></div>
+    </div>
+  </div>
+
+  <!-- PITCH -->
+  <div id="tabPitch" class="tab-content active">
+    <div id="setupBanner"></div>
+    <div class="tab-title">Pitch an idea</div>
+    <div class="form-card">
+      <div class="form-section">
+        <span class="form-label">What kind of project?</span>
+        <div class="type-options">
+          <div class="type-option selected" id="typeEditorial" onclick="selectType('editorial')">
+            <div class="type-name">Editorial</div><div class="type-desc">A place, guide, or roundup</div>
+          </div>
+          <div class="type-option" id="typePartnership" onclick="selectType('partnership')">
+            <div class="type-name">Partnership</div><div class="type-desc">Paid collab with a local biz</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-section">
+        <span class="form-label">Expected Completion</span>
+        <div class="field"><input type="date" id="fCompletion"/></div>
+      </div>
+      <div class="form-section" id="dealSection" style="display:none">
+        <span class="form-label">Partnership Deal Amount</span>
+        <div class="field amount-wrap"><span class="dollar">$</span><input type="number" id="fDeal" placeholder="e.g., 2500"/></div>
+        <p class="helper-text">Numbers only — what the partner is paying.</p>
+      </div>
+      <div class="form-section">
+        <span class="form-label">Working Title</span>
+        <div class="field"><input type="text" id="fTitle" placeholder="e.g., Splash pads we'd actually take a toddler to"/></div>
+      </div>
+      <div class="form-section">
+        <span class="form-label">Content Format <span>(pick one or more)</span></span>
+        <div class="pill-grid">
+          <label class="pill"><input type="checkbox" value="Reel"> Reel</label>
+          <label class="pill"><input type="checkbox" value="IG Carousel"> IG Carousel</label>
+          <label class="pill"><input type="checkbox" value="IG Story series"> IG Story series</label>
+          <label class="pill"><input type="checkbox" value="Article / Magazine"> Article / Magazine</label>
+          <label class="pill"><input type="checkbox" value="Newsletter blurb"> Newsletter blurb</label>
+          <label class="pill"><input type="checkbox" value="Event calendar"> Event calendar</label>
+        </div>
+      </div>
+      <div class="form-section">
+        <span class="form-label">Neighborhood <span>(pick one or more)</span></span>
+        <div class="pill-grid" id="neighborhoodPills">
+          <label class="pill"><input type="checkbox" value="Summerlin"> Summerlin</label>
+          <label class="pill"><input type="checkbox" value="Henderson"> Henderson</label>
+          <label class="pill"><input type="checkbox" value="Northwest"> Northwest</label>
+          <label class="pill"><input type="checkbox" value="Southwest"> Southwest</label>
+          <label class="pill"><input type="checkbox" value="Centennial Hills"> Centennial Hills</label>
+          <label class="pill"><input type="checkbox" value="Green Valley"> Green Valley</label>
+          <label class="pill"><input type="checkbox" value="Downtown / Arts District"> Downtown / Arts District</label>
+          <label class="pill"><input type="checkbox" value="All of Vegas"> All of Vegas</label>
+          <label class="pill"><input type="checkbox" value="Beyond Vegas (day trip)"> Beyond Vegas (day trip)</label>
+        </div>
+        <div class="field" style="margin-top:10px"><input type="text" id="fWhere" placeholder="Where? e.g., Mt. Charleston, Valley of Fire"/></div>
+      </div>
+      <div class="form-section">
+        <span class="form-label">Audience Angle</span>
+        <div class="radio-group">
+          <div class="radio-pill selected" onclick="selectAudience(this,'Local families')">Local families</div>
+          <div class="radio-pill" onclick="selectAudience(this,'Visiting families')">Visiting families</div>
+          <div class="radio-pill" onclick="selectAudience(this,'Both')">Both</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <span class="form-label">Audience Age Range</span>
+        <div class="field">
+          <select id="fAge">
+            <option>Not specific</option>
+            <option>0–2 (babies / toddlers)</option>
+            <option>3–5 (preschool)</option>
+            <option>6–10 (elementary)</option>
+            <option>11–13 (tweens)</option>
+            <option>14–17 (teens)</option>
+            <option>All ages</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-section">
+        <span class="form-label">Describe the Project Idea</span>
+        <div class="field"><textarea id="fDesc" rows="4" placeholder="What's the deal, why our readers care, and what's the one specific thing that makes this worth the post?"></textarea></div>
+      </div>
+      <div class="form-bottom">
+        <button class="btn-rose-sm" id="submitBtn" onclick="submitPitch()">Send it in</button>
+        <button class="btn-clear" onclick="clearForm()">Clear</button>
+      </div>
+    </div>
+    <p class="footer-note">Content is user-generated and unverified.</p>
+  </div>
+
+  <!-- MY PITCHES -->
+  <div id="tabMine" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div class="tab-title" style="margin-bottom:0">My pitches</div>
+      <div class="live-badge"><span class="live-dot"></span>Live</div>
+    </div>
+    <div id="myPitchesList"></div>
+    <p class="footer-note">Content is user-generated and unverified.</p>
+  </div>
+
+  <!-- UP FOR GRABS -->
+  <div id="tabGrabs" class="tab-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div class="tab-title" style="margin-bottom:0">Up for grabs</div>
+      <div class="live-badge"><span class="live-dot"></span>Live</div>
+    </div>
+    <div id="grabsList"></div>
+    <p class="footer-note">Content is user-generated and unverified.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  🔧 SUPABASE CONFIG — replace these two values
+// ══════════════════════════════════════════════════════
+const SUPABASE_URL  = "https://fqcvsvppjkbtjygcbycw.supabase.co";
+const SUPABASE_ANON = "sb_publishable_c7cswDqyw76_hHJwzk_WQg_zf609VWs";
+// ══════════════════════════════════════════════════════
+
+const CREDS = { user:"Hello@lasvegasparentsclub.com", pass:"LVPCteam2024" };
+const TEAM = [
+  { name:"Angela", role:"ADMIN",     color:"pink",   initials:"A" },
+  { name:"Jackee", role:"VOLUNTEER", color:"teal",   initials:"J" },
+  { name:"Jillian",role:"VOLUNTEER", color:"teal",   initials:"J" },
+  { name:"Larry",  role:"VOLUNTEER", color:"purple", initials:"L" },
+];
+
+let sb = null;
+let currentUser = null;
+let selectedType = "editorial";
+let selectedAudience = "Local families";
+let realtimeSub = null;
+
+// ── Init Supabase ──────────────────────────────────────
+function initSupabase(){
+  if(SUPABASE_URL==="YOUR_SUPABASE_URL"||SUPABASE_ANON==="YOUR_SUPABASE_ANON_KEY"){
+    document.getElementById("setupBanner").innerHTML=`
+      <div class="setup-banner">
+        <strong>⚙️ Supabase not connected yet</strong>
+        Open <code>index.html</code>, find the SUPABASE CONFIG section near the bottom,
+        and replace <code>YOUR_SUPABASE_URL</code> and <code>YOUR_SUPABASE_ANON_KEY</code>
+        with your project credentials from <strong>supabase.com → Project Settings → API</strong>.
+        Then run the SQL setup below to create the pitches table.
+      </div>`;
+    return false;
+  }
+  try{
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    return true;
+  }catch(e){
+    showToast("❌ Supabase init failed — check credentials");
+    return false;
+  }
+}
+
+// ── LOGIN ──────────────────────────────────────────────
+function doLogin(){
+  const u=document.getElementById("loginUser").value.trim();
+  const p=document.getElementById("loginPass").value;
+  if(u.toLowerCase()===CREDS.user.toLowerCase()&&p===CREDS.pass){
+    document.getElementById("loginError").style.display="none";
+    show("whoScreen"); renderWho();
+  }else{
+    document.getElementById("loginError").style.display="block";
+    document.getElementById("loginPass").value="";
+    document.getElementById("loginPass").focus();
+  }
+}
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Enter"&&document.getElementById("loginScreen").classList.contains("active"))return;
+  if(e.key==="Enter"&&document.getElementById("loginScreen").classList.contains("active"))doLogin();
+});
+
+// ── WHO PICKER ─────────────────────────────────────────
+function renderWho(){
+  const list=document.getElementById("userList");
+  list.innerHTML="";
+  TEAM.forEach(u=>{
+    const el=document.createElement("div");
+    el.className="user-card";
+    el.innerHTML=`<div class="avatar ${u.color}">${u.initials}</div><div class="user-name">${u.name}</div><div class="user-role">${u.role}</div>`;
+    el.onclick=()=>enterAs(u);
+    list.appendChild(el);
+  });
+}
+function enterAs(u){
+  currentUser=u;
+  document.getElementById("headerAvatar").textContent=u.initials;
+  document.getElementById("headerAvatar").className="header-avatar "+u.color;
+  document.getElementById("headerName").textContent=u.name;
+  document.getElementById("headerRole").textContent=u.role;
+  const ok=initSupabase();
+  show("appScreen");
+  switchTab("pitch");
+  if(ok) setupRealtime();
+  loadGrabCount();
+}
+
+// ── REALTIME ────────────────────────────────────────────
+function setupRealtime(){
+  if(!sb)return;
+  if(realtimeSub)sb.removeChannel(realtimeSub);
+  realtimeSub=sb.channel("pitches-changes")
+    .on("postgres_changes",{event:"*",schema:"public",table:"pitches"},()=>{
+      loadGrabCount();
+      const active=document.querySelector(".tab.active");
+      if(active&&active.textContent.includes("My pitches"))renderMine();
+      if(active&&active.textContent.includes("Up for grabs"))renderGrabs();
+    })
+    .subscribe();
+}
+
+// ── GRAB COUNT ─────────────────────────────────────────
+async function loadGrabCount(){
+  if(!sb){document.getElementById("grabCount").textContent="0";return;}
+  const {count}=await sb.from("pitches").select("*",{count:"exact",head:true}).eq("up_for_grabs",true);
+  document.getElementById("grabCount").textContent=count||0;
+}
+
+// ── TABS ───────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("active"));
+  const map={pitch:0,mine:1,grabs:2};
+  document.querySelectorAll(".tab")[map[tab]].classList.add("active");
+  document.getElementById({pitch:"tabPitch",mine:"tabMine",grabs:"tabGrabs"}[tab]).classList.add("active");
+  if(tab==="mine")renderMine();
+  if(tab==="grabs")renderGrabs();
+}
+
+// ── FORM HELPERS ───────────────────────────────────────
+function selectType(t){
+  selectedType=t;
+  document.getElementById("typeEditorial").classList.toggle("selected",t==="editorial");
+  document.getElementById("typePartnership").classList.toggle("selected",t==="partnership");
+  document.getElementById("dealSection").style.display=t==="partnership"?"block":"none";
+}
+function selectAudience(el,val){
+  selectedAudience=val;
+  document.querySelectorAll(".radio-pill").forEach(r=>r.classList.remove("selected"));
+  el.classList.add("selected");
+}
+function getChecked(sel){return[...document.querySelectorAll(sel+":checked")].map(c=>c.value)}
+
+// ── SUBMIT ─────────────────────────────────────────────
+async function submitPitch(){
+  const title=document.getElementById("fTitle").value.trim();
+  const desc=document.getElementById("fDesc").value.trim();
+  if(!title){showToast("⚠️ Please add a working title");return;}
+  if(!desc){showToast("⚠️ Please describe the idea");return;}
+  const btn=document.getElementById("submitBtn");
+  btn.disabled=true;btn.textContent="Sending…";
+
+  const pitch={
+    submitter:currentUser.name,
+    type:selectedType,
+    title,
+    formats:getChecked(".pill-grid .pill input[type=checkbox]"),
+    neighborhoods:getChecked("#neighborhoodPills input[type=checkbox]"),
+    audience:selectedAudience,
+    age_range:document.getElementById("fAge").value,
+    where_detail:document.getElementById("fWhere").value.trim(),
+    deal_amount:document.getElementById("fDeal").value||null,
+    completion_date:document.getElementById("fCompletion").value||null,
+    description:desc,
+    up_for_grabs:false
+  };
+
+  if(!sb){
+    showToast("⚠️ Supabase not connected — pitch not saved");
+    btn.disabled=false;btn.textContent="Send it in";
+    return;
+  }
+  const{error}=await sb.from("pitches").insert(pitch);
+  if(error){showToast("❌ Error: "+error.message);}
+  else{showToast("✅ Pitch sent in!");clearForm();loadGrabCount();}
+  btn.disabled=false;btn.textContent="Send it in";
+}
+
+function clearForm(){
+  ["fTitle","fDesc","fWhere","fCompletion","fDeal"].forEach(id=>{const el=document.getElementById(id);if(el)el.value=""});
+  document.querySelectorAll(".pill input[type=checkbox]").forEach(c=>c.checked=false);
+  document.getElementById("fAge").value="Not specific";
+  selectType("editorial");
+  document.querySelectorAll(".radio-pill").forEach(r=>r.classList.remove("selected"));
+  document.querySelector(".radio-pill").classList.add("selected");
+  selectedAudience="Local families";
+}
+
+// ── RENDER MY PITCHES ──────────────────────────────────
+async function renderMine(){
+  const el=document.getElementById("myPitchesList");
+  el.innerHTML=`<div class="loading-row"><span class="spinner"></span>Loading…</div>`;
+  if(!sb){el.innerHTML=`<div class="empty-state"><div class="icon">⚙️</div><p>Connect Supabase to see pitches.</p></div>`;return;}
+  const{data,error}=await sb.from("pitches").select("*").eq("submitter",currentUser.name).order("created_at",{ascending:false});
+  if(error){el.innerHTML=`<div class="empty-state"><p>Error loading pitches.</p></div>`;return;}
+  if(!data||!data.length){el.innerHTML=`<div class="empty-state"><div class="icon">📝</div><p>No pitches yet.<br/>Head to "Pitch an idea" to get started.</p></div>`;return;}
+  el.innerHTML=data.map(p=>pitchCard(p,false)).join("");
+}
+
+// ── RENDER GRABS ────────────────────────────────────────
+async function renderGrabs(){
+  const el=document.getElementById("grabsList");
+  el.innerHTML=`<div class="loading-row"><span class="spinner"></span>Loading…</div>`;
+  if(!sb){el.innerHTML=`<div class="empty-state"><div class="icon">⚙️</div><p>Connect Supabase to see pitches.</p></div>`;return;}
+  const{data,error}=await sb.from("pitches").select("*").eq("up_for_grabs",true).order("created_at",{ascending:false});
+  if(error){el.innerHTML=`<div class="empty-state"><p>Error loading.</p></div>`;return;}
+  const available=data?data.filter(p=>p.submitter!==currentUser.name):[];
+  if(!available.length){el.innerHTML=`<div class="empty-state"><div class="icon">🎯</div><p>Nothing up for grabs right now.</p></div>`;return;}
+  el.innerHTML=available.map(p=>pitchCard(p,true)).join("");
+}
+
+function pitchCard(p,showGrab){
+  const tags=[
+    p.formats&&p.formats.length?p.formats.join(", "):"",
+    p.neighborhoods&&p.neighborhoods.length?p.neighborhoods.join(", "):"",
+    p.audience,p.age_range&&p.age_range!=="Not specific"?p.age_range:""
+  ].filter(Boolean).join(" · ");
+  return`<div class="pitch-card">
+    <div class="pitch-header">
+      <div class="pitch-title">${p.title||"Untitled"}</div>
+      <span class="pitch-type ${p.type}">${p.type==="editorial"?"Editorial":"Partnership"}</span>
+    </div>
+    ${tags?`<div class="pitch-meta">${tags}</div>`:""}
+    ${p.deal_amount?`<div class="pitch-meta">💰 $${p.deal_amount}</div>`:""}
+    ${p.description?`<div class="pitch-desc">${p.description}</div>`:""}
+    <div class="pitch-footer">
+      <span class="pitch-by">${showGrab?"Pitched by "+p.submitter:timeAgo(p.created_at)}</span>
+      ${showGrab?`<button class="grab-btn" onclick="grabPitch('${p.id}')">Grab this →</button>`:""}
+    </div>
+  </div>`;
+}
+
+async function grabPitch(id){
+  if(!sb)return;
+  const{error}=await sb.from("pitches").update({up_for_grabs:false,grabbed_by:currentUser.name}).eq("id",id);
+  if(!error){showToast("✅ Pitch grabbed!");renderGrabs();loadGrabCount();}
+}
+
+function timeAgo(ts){
+  if(!ts)return"";
+  const s=Math.floor((Date.now()-new Date(ts))/1000);
+  if(s<60)return"just now";
+  if(s<3600)return Math.floor(s/60)+"m ago";
+  if(s<86400)return Math.floor(s/3600)+"h ago";
+  return Math.floor(s/86400)+"d ago";
+}
+
+// ── UTILS ──────────────────────────────────────────────
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>{s.classList.remove("active");s.style.display="none";});
+  const el=document.getElementById(id);
+  el.style.display=id==="loginScreen"||id==="whoScreen"?"flex":"block";
+  el.classList.add("active");
+}
+function switchUser(){if(realtimeSub&&sb)sb.removeChannel(realtimeSub);show("whoScreen");renderWho();}
+function signOut(){
+  if(realtimeSub&&sb)sb.removeChannel(realtimeSub);
+  currentUser=null;
+  document.getElementById("loginUser").value="";
+  document.getElementById("loginPass").value="";
+  show("loginScreen");
+}
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),3000);
+}
+
+// init
+document.querySelectorAll(".screen").forEach(s=>s.style.display="none");
+document.getElementById("loginScreen").style.display="flex";
+</script>
+</body>
+</html>
