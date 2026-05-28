@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LVPC Community Partnerships Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* ============================================
    LAS VEGAS PARENTS CLUB — Hub
@@ -469,7 +470,7 @@ section.tab-content.active{display:block;}
     </div>
     <div class="signin-error" id="si-error"></div>
     <button class="btn-signin" onclick="handleSignIn()">Enter the Hub →</button>
-    <p class="signin-hint">One shared login for the whole team.<br>You'll pick your name after signing in.</p>
+    
   </div>
 </div>
 
@@ -765,23 +766,39 @@ section.tab-content.active{display:block;}
    Shared login → name picker → personal view
    ========================================================== */
 
+// ═══════════════════════════════════════════════
+//  SUPABASE CONFIG
+// ═══════════════════════════════════════════════
+const SUPABASE_URL  = "https://fqcvsvppjkbtjygcbycw.supabase.co";
+const SUPABASE_ANON = "sb_publishable_c7cswDqyw76_hHJwzk_WQg_zf609VWs";
+let sb = null;
+function initSupabase(){
+  try{ sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON); }
+  catch(e){ console.warn('Supabase init failed',e); }
+}
+initSupabase();
+
+// ═══════════════════════════════════════════════
+//  INDIVIDUAL LOGINS — each person has own creds
+// ═══════════════════════════════════════════════
+const INDIVIDUAL_LOGINS = [
+  { username:'angela',   password:'LVPCadmin2024',  id:'angela',  name:'Angela',  role:'admin'     },
+  { username:'jackee',   password:'Mango!492',       id:'jackee',  name:'Jackee',  role:'volunteer' },
+  { username:'jillian',  password:'Palm!738',        id:'jillian', name:'Jillian', role:'volunteer' },
+  { username:'tatiana',  password:'Desert!301',      id:'tatiana', name:'Tatiana', role:'volunteer' },
+  { username:'larry',    password:'Neon!615',        id:'larry',   name:'Larry',   role:'volunteer' },
+  { username:'LVPCTeam', password:'CreatorLife560',  id:null,      name:null,      role:null, shared:true },
+];
+
 const STATE_KEY  = 'lvpc-state-v9';
 const CREDS_KEY  = 'lvpc-creds-v2';
 const TEAMS_KEY  = 'lvpc-team-v2';
 
-/* ── Default credentials ── */
-function defaultCreds(){
-  return { username:'LVPCTeam', password:'CreatorLife560' };
-}
+/* ── Default credentials (kept for admin change-creds panel) ── */
+function defaultCreds(){ return { username:'angela', password:'LVPCadmin2024' }; }
 /* ── Default team members ── */
 function defaultTeam(){
-  return [
-    { id:'angela',  name:'Angela',  role:'admin' },
-    { id:'jackee',  name:'Jackee',  role:'volunteer' },
-    { id:'jillian', name:'Jillian', role:'volunteer' },
-    { id:'tatiana', name:'Tatiana', role:'volunteer' },
-    { id:'larry',   name:'Larry',   role:'volunteer' }
-  ];
+  return INDIVIDUAL_LOGINS.map(u=>({ id:u.id, name:u.name, role:u.role }));
 }
 /* ── Avatar colors ── */
 const AV_COLORS = ['#C93C5E','#4FA7A6','#7FC0BC','#B68C4F','#C9A776','#6B8EC4','#8E6BC4'];
@@ -821,7 +838,42 @@ function loadState(){
   try{ const r=localStorage.getItem(STATE_KEY); if(r) return JSON.parse(r); }catch(e){}
   return defaultState();
 }
-function save(){ try{ localStorage.setItem(STATE_KEY,JSON.stringify(S)); }catch(e){} }
+
+// Sync to Supabase — upserts full ideas array as one row
+async function saveToSupabase(){
+  if(!sb) return;
+  try{
+    await sb.from('hub_state').upsert({id:1, data:JSON.stringify(S), updated_at:new Date().toISOString()});
+  }catch(e){ console.warn('Supabase save error',e); }
+}
+
+async function loadStateFromSupabase(){
+  if(!sb){ return; }
+  try{
+    const {data,error}=await sb.from('hub_state').select('data').eq('id',1).single();
+    if(!error&&data&&data.data){
+      S=JSON.parse(data.data);
+      localStorage.setItem(STATE_KEY,JSON.stringify(S));
+    }
+  }catch(e){ console.warn('Supabase load error',e); }
+}
+
+function save(){
+  try{ localStorage.setItem(STATE_KEY,JSON.stringify(S)); }catch(e){}
+  saveToSupabase();
+}
+
+// Realtime: reload state when another user makes changes
+function setupRealtime(){
+  if(!sb) return;
+  sb.channel('hub-changes')
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'hub_state'},async()=>{
+      await loadStateFromSupabase();
+      renderAll();
+      showToast('🔄 Hub updated by a team member');
+    })
+    .subscribe();
+}
 
 function getCreds(){ try{ const r=localStorage.getItem(CREDS_KEY); if(r) return JSON.parse(r); }catch(e){} return defaultCreds(); }
 function saveCreds(obj){ localStorage.setItem(CREDS_KEY,JSON.stringify(obj)); }
@@ -852,14 +904,31 @@ function showToast(msg){ const t=document.getElementById('toast'); t.textContent
 
 /* ── Sign in ── */
 function handleSignIn(){
-  const u=document.getElementById('si-user').value.trim();
+  const u=document.getElementById('si-user').value.trim().toLowerCase();
   const p=document.getElementById('si-pass').value;
-  const creds=getCreds();
   const errEl=document.getElementById('si-error');
-  if(u===creds.username && p===creds.password){
+  const match=INDIVIDUAL_LOGINS.find(l=>l.username.toLowerCase()===u&&l.password===p);
+  if(match && match.shared){
+    // Shared login — go to name picker (original behaviour)
     errEl.classList.remove('show');
     localStorage.setItem('lvpc-authed','1');
-    showPicker();
+    loadStateFromSupabase().then(()=>{ showPicker(); setupRealtime(); });
+  } else if(match){
+    // Individual login — go straight to personal view
+    errEl.classList.remove('show');
+    localStorage.setItem('lvpc-authed','1');
+    localStorage.setItem('lvpc-user',match.id);
+    currentUser={id:match.id,name:match.name,role:match.role};
+    loadStateFromSupabase().then(()=>{
+      document.getElementById('screen-signin').style.display='none';
+      document.getElementById('screen-app').style.display='block';
+      renderUserChip();
+      setupTabs();
+      setupPitchForm();
+      setupBoardFilters();
+      renderAll();
+      setupRealtime();
+    });
   } else {
     errEl.textContent='Incorrect username or password. Try again.';
     errEl.classList.add('show');
@@ -1484,33 +1553,34 @@ function renderAll(){
 (function restoreSession(){
   const authed = localStorage.getItem('lvpc-authed');
   const savedId = localStorage.getItem('lvpc-user');
-  if(!authed) return; // not signed in — show login screen (default)
+  if(!authed) return;
   if(authed && !savedId){
-    // Was authenticated but hadn't picked a user yet — go to picker
     document.getElementById('screen-signin').style.display='none';
     document.getElementById('screen-picker').style.display='flex';
     renderPicker();
     return;
   }
-  // Fully restore: skip signin + picker, go straight to app
   const team = getTeam();
   currentUser = team.find(u => u.id === savedId);
   if(!currentUser){
-    // Saved user no longer exists — fall back to picker
     localStorage.removeItem('lvpc-user');
     document.getElementById('screen-signin').style.display='none';
     document.getElementById('screen-picker').style.display='flex';
     renderPicker();
     return;
   }
-  document.getElementById('screen-signin').style.display='none';
-  document.getElementById('screen-picker').style.display='none';
-  document.getElementById('screen-app').style.display='block';
-  renderUserChip();
-  setupTabs();
-  setupPitchForm();
-  setupBoardFilters();
-  renderAll();
+  // Load fresh data from Supabase then render
+  loadStateFromSupabase().then(()=>{
+    document.getElementById('screen-signin').style.display='none';
+    document.getElementById('screen-picker').style.display='none';
+    document.getElementById('screen-app').style.display='block';
+    renderUserChip();
+    setupTabs();
+    setupPitchForm();
+    setupBoardFilters();
+    renderAll();
+    setupRealtime();
+  });
 })();
 </script>
 </body>
